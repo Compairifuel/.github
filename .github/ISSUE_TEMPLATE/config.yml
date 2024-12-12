@@ -1,0 +1,126 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contact Support
+    url: https://compairifuel.com/support
+    about: If you need further assistance, please contact our support team.
+
+---
+
+name: Bug Report
+description: Create an issue for reporting a bug or unexpected behavior.
+labels: bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Issue Title
+        <!-- Provide a short title summarizing the issue -->
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: A clear and concise description of what the issue is.
+      placeholder: "Please describe the bug in detail."
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Provide the steps to reproduce the issue. Include relevant environment details (device type, OS, etc.).
+      placeholder: |
+        1. Step one
+        2. Step two
+        3. Step three
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Describe what you expected the app to do.
+      placeholder: "What should have happened?"
+
+  - type: textarea
+    attributes:
+      label: Actual Behavior
+      description: Describe what actually happened.
+      placeholder: "What actually happened?"
+
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: Add screenshots if relevant to help explain your problem.
+      placeholder: "Attach screenshots here."
+
+  - type: input
+    attributes:
+      label: Device Information
+      description: Provide the device and OS details.
+      placeholder: |
+        - Device: iPhone 13
+        - OS Version: iOS 17.0.3
+
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: Any other information that might be relevant.
+      placeholder: "Add any extra context here."
+  
+---
+
+name: Feature Request
+description: Create an issue to request a new feature or improvement.
+labels: enhancement
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Title
+        <!-- Provide a short title for the feature request -->
+
+  - type: textarea
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you would like to request.
+      placeholder: "Please describe the new feature."
+
+  - type: textarea
+    attributes:
+      label: User Story
+      description: Describe the user story for this feature (e.g., As a [type of user], I want [some goal] so that I can [some reason]).
+      placeholder: "As a user, I want to be able to..."
+
+  - type: textarea
+    attributes:
+      label: Use Cases
+      description: List specific use cases where this feature would be useful.
+      placeholder: |
+        1. Use case 1
+        2. Use case 2
+        3. Use case 3
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Describe how the feature should behave once implemented.
+      placeholder: "What will the behavior be after implementation?"
+
+  - type: textarea
+    attributes:
+      label: UI/UX Design (if applicable)
+      description: Attach or describe design ideas, mockups, or sketches if you have any.
+      placeholder: "Provide design ideas or attach files."
+
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: List the conditions that must be met for this feature to be considered complete.
+      placeholder: |
+        - Criteria 1
+        - Criteria 2
+        - Criteria 3
+
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: Any other context or details to help us understand the feature request.
+      placeholder: "Add extra details here."
