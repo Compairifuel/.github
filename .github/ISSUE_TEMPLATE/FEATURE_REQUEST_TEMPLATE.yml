@@ -1,0 +1,58 @@
+name: Feature Request
+description: Create an issue to request a new feature or improvement.
+labels: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Title
+        <!-- Provide a short title for the feature request -->
+
+  - type: textarea
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you would like to request.
+      placeholder: "Please describe the new feature."
+
+  - type: textarea
+    attributes:
+      label: User Story
+      description: Describe the user story for this feature (e.g., As a [type of user], I want [some goal] so that I can [some reason]).
+      placeholder: "As a user, I want to be able to..."
+
+  - type: textarea
+    attributes:
+      label: Use Cases
+      description: List specific use cases where this feature would be useful.
+      placeholder: |
+        1. Use case 1
+        2. Use case 2
+        3. Use case 3
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Describe how the feature should behave once implemented.
+      placeholder: "What will the behavior be after implementation?"
+
+  - type: textarea
+    attributes:
+      label: UI/UX Design (if applicable)
+      description: Attach or describe design ideas, mockups, or sketches if you have any.
+      placeholder: "Provide design ideas or attach files."
+
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: List the conditions that must be met for this feature to be considered complete.
+      placeholder: |
+        - Criteria 1
+        - Criteria 2
+        - Criteria 3
+
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: Any other context or details to help us understand the feature request.
+      placeholder: "Add extra details here."
