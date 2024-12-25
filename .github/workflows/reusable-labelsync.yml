@@ -1,13 +1,11 @@
-name: Automatic Label Sync
+name: Compairifuel Automatic Label Sync Action
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
-  label_sync:
-    name: Automatic Label Synchronization
+  label-sync:
+    name: Label sync
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,8 +13,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          sparse-checkout: .github/labels.yml
+          sparse-checkout-cone-mode: false
+          repository: Compairifuel/.github
       - name: Run Label Sync
         uses: crazy-max/ghaction-github-labeler@de749cf181958193cb7debf1a9c5bb28922f3e1b # v5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
+          yaml-file: .github/labels.yml
