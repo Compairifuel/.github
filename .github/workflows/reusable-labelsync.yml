@@ -18,7 +18,4 @@ jobs:
           sparse-checkout-cone-mode: false
           repository: Compairifuel/.github
       - name: Run Label Sync
-        uses: crazy-max/ghaction-github-labeler@de749cf181958193cb7debf1a9c5bb28922f3e1b # v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          yaml-file: .github/labels.yml
+        uses: compairifuel/.github/actions/labelsync@main

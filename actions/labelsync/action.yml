@@ -1,0 +1,20 @@
+inputs:
+  labels-file:
+    description: "The path to the labels.yml file"
+    default: ".github/labels.yml"
+  skip-delete:
+    description: "Skip label deletion if the label is not in the labels.yml file"
+    default: "false"
+  dry-run:
+    description: "Run the action without making any changes"
+    default: "false"
+  github-token:
+    description: "GitHub token with permissions to manage labels"
+    default: ${{ github.token }}
+    required: true
+
+name: "Label Sync"
+description: "Synchronizes labels between repositories"
+runs:
+  using: "node20"
+  main: "index.mjs"
