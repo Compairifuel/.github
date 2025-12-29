@@ -1,0 +1,81 @@
+name: Compairifuel Automatic SemVer Release
+description: This Action is a reusable Releaser
+
+on:
+  workflow_call:
+    inputs:
+      tag-name:
+        description: "The tag to create and release"
+        type: string
+        required: true
+      changelog:
+        description: "The changelog for the release"
+        type: string
+        default: ""
+    secrets:
+      github-token:
+        description: "GitHub token for creating tags/releases"
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if tag exists
+        id: tag_check
+        run: |
+          if git rev-parse "refs/tags/${{ inputs.tag-name }}" >/dev/null 2>&1; then
+            echo "EXISTS=true" >> $GITHUB_OUTPUT
+          else
+            echo "EXISTS=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract SemVer
+        id: get_semver
+        shell: bash
+        run: |
+          SEMVER=$(basename ${{ inputs.tag-name }})
+          if ! [[ $SEMVER =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid SemVer: $SEMVER"
+            exit 1
+          fi
+          echo "Detected SemVer: $SEMVER"
+          echo "SEMVER=$SEMVER" >> $GITHUB_OUTPUT
+
+      - name: Create Git tag
+        if: steps.tag_check.outputs.EXISTS == 'false'
+        run: |
+          git tag -a "${{ inputs.tag-name }}" -m "Release ${{ inputs.tag-name }}"
+          git push origin "${{ inputs.tag-name }}" --atomic || git push origin "${{ inputs.tag-name }}" || { echo "Failed to push tag"; exit 1; }
+
+      - name: Create GitHub Release
+        if: steps.tag_check.outputs.EXISTS == 'false' 
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ inputs.tag-name }}
+          release_name: ${{ inputs.tag-name }}
+          body: |
+            ${{ inputs.changelog }}
+          draft: false
+          generate_release_notes: ${{ inputs.changelog == '' }}
+          prerelease: ${{ !startsWith(steps.get_semver.outputs.SEMVER, 'v') || contains(steps.get_semver.outputs.SEMVER, '-alpha') || contains(steps.get_semver.outputs.SEMVER, '-beta') || contains(steps.get_semver.outputs.SEMVER, '-rc') || contains(steps.get_semver.outputs.SEMVER, '-pre') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
