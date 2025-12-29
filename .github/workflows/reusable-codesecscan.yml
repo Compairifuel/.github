@@ -1,0 +1,174 @@
+name: Compairifuel Automatic Static Code Security Scan
+description: This Action is a reusable static code scanner workflow that uses semgrep.
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: "Path to codebase"
+        type: string
+        default: "."
+      config_path:
+        description: "Path to config file"
+        type: string
+        default: "p/default"
+      verbose:
+        description: "Log scan results"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  semgrep:
+    name: Semgrep Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-semgrep-${{ runner.os }}-latest
+
+      - name: Install Semgrep
+        shell: bash
+        run: |
+          pip install semgrep==1.147.0
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run Semgrep Setup
+        id: semgrep-setup
+        shell: bash
+        run: |
+          if [ "${{ inputs.config_path }}" = "p/default" ]; then
+            echo "Using semgrep auto config"
+            semgrep --config=${{ inputs.config_path }} --metrics=off --validate -v --error || { echo "Semgrep ${{ inputs.config_path }} config test failed"; exit 1; }
+          else
+            if [ ! -f "${{ inputs.config_path }}" ] && [ ! -d "${{ inputs.config_path }}" ]; then
+              echo "Config path ${{ inputs.config_path }} does not exist"
+              exit 1
+            fi
+            echo "Using semgrep config at ${{ inputs.config_path }}"
+            semgrep --config="${{ inputs.config_path }}" --metrics=off --validate -v --error || { echo "Semgrep config test failed"; exit 1; }
+          fi
+
+      - name: Run Semgrep Scan
+        id: semgrep
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          VERBOSE="-q"
+          if [ "${{ inputs.verbose }}" = "true" ]; then
+            VERBOSE=""
+          fi
+
+          semgrep --config ${{ inputs.config_path }} --metrics=off --json-output=semgrep.json --sarif-output=semgrep.sarif ${{ inputs.path }} --error $VERBOSE
+
+          case "$?" in
+            0)
+              echo "Semgrep ran successfully and found no errors."
+              exit 0
+              ;;
+            1)
+              echo "Semgrep ran successfully and found issues in your code (while using the --error flag)."
+              exit 1
+              ;;
+            2)
+              echo "Semgrep failed."
+              exit 2
+              ;;
+            3)
+              echo "Invalid syntax of the scanned language. This error occurs only while using the --strict flag."
+              exit 3
+              ;;
+            4)
+              echo "Semgrep encountered an invalid pattern in the rule schema."
+              exit 4
+              ;;
+            5)
+              echo "Semgrep configuration is not valid YAML."
+              exit 5
+              ;;
+            7)
+              echo "At least one rule in the configuration is invalid."
+              exit 7
+              ;;
+            8)
+              echo "Semgrep does not understand specified language."
+              exit 8
+              ;;
+            13)
+              echo "The API key is invalid."
+              exit 13
+              ;;
+            *)
+              echo "An unknown error occurred."
+              exit $?
+          esac
+
+      - name: Normalize SARIF safely (fail-open)
+        if: always() && !cancelled() && steps.semgrep.conclusion == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ORIGINAL="semgrep.sarif"
+          CANDIDATE="semgrep.normalized.sarif"
+
+          cp "$ORIGINAL" "$ORIGINAL.bak"
+
+          # Attempt normalization
+          if jq '
+              .runs[0].tool.driver.name = "Semgrep OSS"
+              | .runs[0].tool.driver.version = "1.147.0"
+              | .runs[0].originalUriBaseIds = {
+                  "REPO_ROOT": {
+                    "uri": "",
+                    "description": { "text": "Repository root" }
+                  }
+                }
+            ' "$ORIGINAL" > "$CANDIDATE"; then
+
+            # Validate SARIF invariants
+            if jq -e '
+                .version
+                and (.runs | type == "array" and length > 0)
+                and .runs[0].tool.driver.name
+              ' "$CANDIDATE" > /dev/null; then
+
+              echo "SARIF normalization succeeded"
+              mv "$CANDIDATE" "$ORIGINAL"
+              rm -f "$ORIGINAL.bak"
+
+            else
+              echo "SARIF validation failed — reverting"
+              mv "$ORIGINAL.bak" "$ORIGINAL"
+              rm -f "$CANDIDATE"
+            fi
+
+          else
+            echo "jq failed — reverting SARIF"
+            mv "$ORIGINAL.bak" "$ORIGINAL"
+            rm -f "$CANDIDATE"
+          fi
+
+      - name: Upload Static Code Analysis Artifact
+        id: upload-artifact
+        if: always() && !cancelled() && steps.semgrep-setup.outcome == 'success' && steps.semgrep.conclusion == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: semgrep-analysis
+          path: |
+            semgrep.json
+            semgrep.sarif
+
+      - name: Upload SARIF to GitHub
+        if: always() && !cancelled() && steps.semgrep-setup.outcome == 'success' && steps.semgrep.conclusion == 'success'
+        uses: github/codeql-action/upload-sarif@v4  
+        with:
+          sarif_file: semgrep.sarif
