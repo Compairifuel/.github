@@ -1,0 +1,25 @@
+inputs:
+  commits:
+    description: "The list of commits (format:%B%n%n==END==)"
+    type: string
+    required: true
+  allowed_types:
+    description: "Allowed commit types (comma-separated)"
+    type: string
+    required: true
+
+name: "Validate Commits"
+description: "Validate the commit messages"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        COMMITS="${{ inputs.commits }}"
+        ALLOWED_TYPES="${{ inputs.allowed_types }}"
+
+        chmod +x "$GITHUB_ACTION_PATH/validate-commits.sh"
+
+        "$GITHUB_ACTION_PATH/validate-commits.sh" \
+        "$COMMITS" \
+        "$ALLOWED_TYPES"

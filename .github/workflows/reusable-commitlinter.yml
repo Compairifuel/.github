@@ -1,0 +1,92 @@
+name: "Check Conventional Commits"
+description: This Action is a reusable linter for commit messages following conventional commits guidelines.
+
+on:
+  workflow_call:
+    inputs:
+      trunk-ref:
+        description: "The trunk branch"
+        type: string
+        default: ""
+      allowed_types:
+        description: "Comma-separated list of allowed commit types"
+        type: string
+        default: "build,chore,ci,docs,feat,fix,perf,refactor,revert,style,test"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-commits:
+    if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate Trunk branch
+        if: ${{ inputs.trunk-ref != '' }}
+        run: git fetch origin ${{ inputs.trunk-ref }} || exit 1
+      - name: Get commits
+        id: get_commits
+        run: |
+          if [ "${{ inputs.trunk-ref }}" = "" ]; then
+            BASE_REF=$(git rev-parse HEAD)
+          else
+            BASE_REF="origin/${{ inputs.trunk-ref }}"
+          fi
+          COMMITS=$(git log "$BASE_REF..$GITHUB_SHA" --pretty=format:%B%n%n==END== | sed '/^\s*$/d')
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - uses: compairifuel/.github/actions/validate-commits@main
+        with:
+          commits: ${{ steps.get_commits.outputs.commits }}
+          allowed_types: "${{ inputs.allowed_types }}"
+          
+  validate-pr:
+    if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PR commits and title
+        id: pr_commits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.trunk-ref }}" = "" ]; then
+            BASE_REF=$(git rev-parse HEAD)
+          else
+            BASE_REF="origin/${{ inputs.trunk-ref }}"
+          fi
+
+          COMMITS=$(git log "$BASE_REF..$GITHUB_SHA" --pretty=format:%B%n%n==END== | sed '/^\s*$/d')
+
+          # If squash/merge, include PR title as a commit
+          if [ $(echo "$COMMITS" | wc -l) -eq 1 ]; then
+
+            PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+            PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
+
+            PR_COMMIT="$PR_TITLE"
+
+            if [ -n "$PR_BODY" ]; then
+              PR_COMMIT="$PR_COMMIT"$'\n\n'"$PR_BODY"
+            fi
+
+            COMMITS="$PR_COMMIT"$'\n\n==END==\n\n'"$COMMITS"
+          fi
+
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - uses: compairifuel/.github/actions/validate-commits@main
+        with:
+          commits: ${{ steps.pr_commits.outputs.commits }}
+          allowed_types: "${{ inputs.allowed_types }}"
