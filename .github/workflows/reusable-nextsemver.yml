@@ -1,0 +1,133 @@
+name: Compairifuel Automatic SemVer Computation
+description: This Action is a reusable versioning calculator based on SemVer.
+
+on:
+  workflow_call:
+    inputs:
+      trunk-ref:
+        description: "The trunk branch"
+        type: string
+        required: true
+      monorepo:
+        description: "Is this a monorepo"
+        type: boolean
+        default: false
+      monorepo-package-path:
+        description: "Path to codebase within a monorepo"
+        type: string
+        default: ""
+      major-types:
+        description: "Major increase on commit types (Comma-separated)"
+        type: string
+        default: "BREAKING CHANGE,!"
+      minor-types:
+        description: "Minor increase on commit types (Comma-separated)"
+        type: string
+        default: "feat,feature"
+    outputs:
+      semver:
+        description: "The calculated semver"
+        value: ${{ jobs.nextsemver.outputs.semver }}
+      semver-tag:
+        description: "The tagname of the computed semver"
+        value: ${{ jobs.nextsemver.outputs.semver-tag }}
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.monorepo-package-path }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  nextsemver:
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.computesemver.outputs.SEMVER }}
+      semver-tag: ${{ steps.computesemver.outputs.TAG_NAME }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Validate Trunk branch
+        run: git fetch origin ${{ inputs.trunk-ref }} || exit 1
+
+      - id: get_path
+        run: |
+          if [ "${{ inputs.monorepo }}" = "true" ]; then
+            echo "PATH=${{ inputs.monorepo-package-path }}" >> $GITHUB_OUTPUT
+          else
+            echo "PATH=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Latest Tag
+        id: get_tag
+        run: |
+          PREFIX="${{ steps.get_path.outputs.PATH }}"
+          TAG_PATTERN="${PREFIX:+$PREFIX/}v[0-9a-zA-Z-]*"
+
+          LATEST_TAG=$(git tag --list "$TAG_PATTERN" --sort=-v:refname | head -n 1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="${PREFIX:+$PREFIX/}v0.0.0"
+          fi
+
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Get Commits
+        id: get_commits
+        run: |
+          PATH="${{ steps.get_path.outputs.PATH }}"
+          TAG="${{ steps.get_tag.outputs.LATEST_TAG }}"
+
+          if [ "$TAG" = "${PATH:+$PATH/}v0.0.0" ]; then
+            TAG="origin/${{ inputs.trunk-ref }}"
+          fi
+
+          git fetch origin ${{ inputs.trunk-ref }}
+          git checkout -b temp-rebased "$GITHUB_SHA"
+          git rebase origin/${{ inputs.trunk-ref }} --autostash || exit 1
+
+          COMMITS=$(git log "$TAG"..HEAD --pretty=format:%B%n%n==END== --cherry -- "$PATH" | sed '/^\s*$/d')
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - id: is_trunk
+        run: |
+          if [ "$GITHUB_REF_NAME" == "${{ inputs.trunk-ref }}" ]; then
+            echo "ISTRUNK=true" >> $GITHUB_OUTPUT
+          else
+            echo "ISTRUNK=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute version
+        if: steps.get_commits.outputs.COMMITS != ''
+        id: computesemver
+        uses: compairifuel/.github/actions/compute-semver@main
+        with:
+          commits: ${{ steps.get_commits.outputs.COMMITS }}
+          package-path: ${{ steps.get_path.outputs.PATH }}
+          latest-tag: ${{ steps.get_tag.outputs.LATEST_TAG }}
+          is-trunk: ${{ steps.is_trunk.outputs.ISTRUNK }}
+          major-types: ${{ inputs.major-types }}
+          minor-types: ${{ inputs.minor-types }}
+
+      - name: Create Changelog
+        if: ${{ steps.get_commits.outputs.COMMITS != '' && steps.computesemver.outputs.SEMVER != '' }}
+        run: |
+          while IFS= read -r changelog; do
+            TYPE="${changelog%%:*}"
+            MSG="${changelog#*:}"
+            echo "- $TYPE: $MSG" >> CHANGELOG.md
+          done <<< "${{ steps.computesemver.outputs.CHANGELOG }}"
+
+      - name: Upload Changelog
+        if: ${{ steps.get_commits.outputs.COMMITS != '' && steps.computesemver.outputs.SEMVER != '' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: "changelog-${{ steps.computesemver.outputs.TAG_NAME }}"
+          path: |
+            CHANGELOG.md

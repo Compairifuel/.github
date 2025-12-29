@@ -1,0 +1,61 @@
+inputs:
+  commits:
+    description: "The list of commits (format:%B%n%n==END==)"
+    type: string
+    required: true
+  latest-tag:
+    description: "The Latest Tag"
+    type: string
+    required: true
+  package-path:
+    description: "Path of the package"
+    type: string
+    default: ""
+  is-trunk:
+    description: "Is Trunk branch"
+    type: boolean
+    required: true
+  major-types:
+    description: "Major increase on commit types (Comma-separated)"
+    type: string
+    default: "BREAKING CHANGE,!"
+  minor-types:
+    description: "Minor increase on commit types (Comma-separated)"
+    type: string
+    default: "feat,feature"
+outputs:
+  semver:
+    description: "The computed semver"
+    value: ${{ steps.compute.outputs.SEMVER }}
+  changelog:
+    description: "The computed changelog"
+    value: ${{ steps.compute.outputs.CHANGELOG }}
+
+name: "Compute SemVer"
+description: "Compute the SemVer"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      id: compute
+      run: |
+        COMMITS="${{ inputs.commits }}"
+        PACKAGE_PATH="${{ inputs.package-path }}"
+        LATEST_TAG="${{ inputs.latest-tag }}"
+        VERSION_PREFIX="v"
+        VERSION_ALPHA_SUFFIX="alpha"
+        ISTRUNK="${{ inputs.is-trunk }}"
+        MAJOR_TYPES="${{ inputs.major-types }}"
+        MINOR_TYPES="${{ inputs.minor-types }}"
+
+        chmod +x "$GITHUB_ACTION_PATH/compute-semver.sh"
+
+        "$GITHUB_ACTION_PATH/compute-semver.sh" \
+          "$COMMITS" \
+          "$PACKAGE_PATH" \
+          "$LATEST_TAG" \
+          "$VERSION_PREFIX" \
+          "$VERSION_ALPHA_SUFFIX" \
+          "$ISTRUNK" \
+          "$MAJOR_TYPES" \
+          "$MINOR_TYPES"
