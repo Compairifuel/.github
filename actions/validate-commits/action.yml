@@ -20,6 +20,11 @@ runs:
 
         chmod +x "$GITHUB_ACTION_PATH/validate-commits.sh"
 
+        COMMITS_FILE="$(mktemp)"
+        printf '%s\n' "$COMMITS" > "$COMMITS_FILE"
+
         "$GITHUB_ACTION_PATH/validate-commits.sh" \
-        "$COMMITS" \
+        "$COMMITS_FILE" \
         "$ALLOWED_TYPES"
+
+        rm -f "$COMMITS_FILE"

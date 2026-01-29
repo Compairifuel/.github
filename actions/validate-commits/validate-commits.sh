@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-COMMITS="$1"
+COMMITS="$(cat "$1")"
 ALLOWED_TYPES="$2"
 
 IFS=',' read -r -a ALLOWED_TYPES_ARRAY <<< "$ALLOWED_TYPES"
@@ -32,14 +32,52 @@ validate_commit() {
     return 1
   fi
 
-  # Extract footer (lines after the last blank line)
-  local footer
-  footer="$(printf "%s\n" "$msg" | awk '
-    BEGIN { block="" }
-    /^[[:space:]]*$/ { block=""; next }
-    { block = block $0 "\n" }
-    END { printf "%s", block }
-  ')"
+  # Everything after header
+  local rest
+  rest="$(printf "%s\n" "$msg" | tail -n +2)"
+
+  [[ -z "$rest" ]] && return 0
+
+  local in_footer=0
+  local saw_blank_before_footer=0
+  local footer=""
+
+  # Track line numbers to enforce blank line after header
+  local lineno=0
+  while IFS= read -r line; do
+    ((lineno++))
+
+    # Skip blank lines
+    if [[ -z "$line" ]]; then
+      # Mark that a blank line has been seen (important for footer detection)
+      saw_blank_before_footer=1
+      continue
+    fi
+
+    # --- Header ↔ body check ---
+    if (( lineno == 1 )) && [[ $line =~ ^[^[:space:]] ]]; then
+      echo "Body must be separated from header by a blank line"
+      return 1
+    fi
+
+    # --- Footer detection ---
+    if [[ $saw_blank_before_footer -eq 1 &&
+          "$line" =~ ^(BREAKING[[:space:]-]CHANGE|[^:]+):\ .+ ]]; then
+      in_footer=1
+      footer+="$line"$'\n'
+      continue
+    fi
+
+    # --- Non-footer line after footer started → invalid ---
+    if [[ $in_footer -eq 1 ]]; then
+      echo "Footer must be the final block and preceded by a blank line"
+      return 1
+    fi
+
+    # --- Body content ---
+    saw_blank_before_footer=0
+
+  done <<< "$rest"
 
   [[ -z "$footer" ]] && return 0
 
