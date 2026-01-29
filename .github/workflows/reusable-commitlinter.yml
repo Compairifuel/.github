@@ -73,6 +73,9 @@ jobs:
             PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
             PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
 
+            PR_TITLE="${PR_TITLE//$'\r'/}"
+            PR_BODY="${PR_BODY//$'\r'/}"
+
             PR_COMMIT="$PR_TITLE"
 
             if [ -n "$PR_BODY" ]; then
@@ -83,7 +86,7 @@ jobs:
           fi
 
           echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
+          printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
 
       - uses: compairifuel/.github/actions/validate-commits@main

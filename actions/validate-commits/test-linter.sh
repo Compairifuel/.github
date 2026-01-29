@@ -10,9 +10,12 @@ run_test() {
   local commits="$2"
   local should_pass="$3"
 
+  COMMITS_FILE="$(mktemp)"
+  printf '%s\n' "$commits" > "$COMMITS_FILE"
+
   echo "Running test: $name"
 
-  if "$SCRIPT" "$commits" "$ALLOWED_TYPES" > /tmp/test.out 2>&1; then
+  if "$SCRIPT" "$COMMITS_FILE" "$ALLOWED_TYPES" > /tmp/test.out 2>&1; then
     if [[ "$should_pass" == "true" ]]; then
       echo "$name"
     else
@@ -66,6 +69,10 @@ run_test "multiple commits mixed case" \
   $'Fix: bug\n==END==\nCHORE: cleanup\n==END==\n' \
   true
 
+run_test "commit with body and breaking change footer" \
+  $'fix(core): handle nil pointer\n\nGuard against nil inputs during init.\n\nRefs: #42\nBREAKING CHANGE: init() now panics on nil\n==END==\n' \
+  true
+
 # ---------------- INVALID ----------------
 run_test "unknown type mixed case" \
   $'Foobar: no\n==END==\n' \
@@ -80,12 +87,12 @@ run_test "empty subject" \
   false
 
 # ---------------- INVALID FOOTERS ----------------
-run_test "invalid footer format" \
-  $'fix: bug\n\nnot a footer\n==END==\n' \
+run_test "commit with invalid footer after valid footer" \
+  $'fix(core): handle nil pointer\n\nRefs: #42\nmore text\n==END==\n' \
   false
 
-run_test "footer missing space" \
-  $'fix: bug\n\nBREAKING CHANGE:nope\n==END==\n' \
+run_test "commit with invalid footer" \
+  $'fix(core): handle nil pointer\nRefs: #42\n==END==\n' \
   false
 
 # ---------------- MIXED ----------------
@@ -104,6 +111,10 @@ run_test "trailing whitespace" \
 
 run_test "empty input" \
   $'==END==\n' \
+  true
+
+run_test "only blank commits" \
+  $'\n==END==\n\n==END==\n' \
   true
 
 # ---------------- RESULT ----------------
