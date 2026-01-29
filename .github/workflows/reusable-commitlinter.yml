@@ -76,6 +76,8 @@ jobs:
             PR_TITLE="${PR_TITLE//$'\r'/}"
             PR_BODY="${PR_BODY//$'\r'/}"
 
+            PR_BODY=$(jq -Rn --arg str "$PR_BODY" '$str' | sed 's/^"\(.*\)"$/\1/')
+
             PR_COMMIT="$PR_TITLE"
 
             if [ -n "$PR_BODY" ]; then
