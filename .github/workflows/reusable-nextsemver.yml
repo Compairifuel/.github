@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload Changelog
         if: ${{ steps.get_commits.outputs.COMMITS != '' && steps.computesemver.outputs.SEMVER != '' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: "changelog-${{ steps.computesemver.outputs.TAG_NAME }}"
           path: |
