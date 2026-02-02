@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -f
 
 COMMITS="$(cat "$1")"
 ALLOWED_TYPES="$2"
