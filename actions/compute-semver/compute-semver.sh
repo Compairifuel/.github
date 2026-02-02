@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -f
 
-COMMITS="$1"
+COMMITS="$(cat "$1")"
 PACKAGE_PATH="$2"
 LATEST_TAG="$3"
 VERSION_PREFIX="$4"

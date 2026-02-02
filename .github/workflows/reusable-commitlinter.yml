@@ -41,7 +41,7 @@ jobs:
           fi
           COMMITS=$(git log "$BASE_REF..$GITHUB_SHA" --pretty=format:%B%n%n==END== | sed '/^\s*$/d')
           echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
+          printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
           
       - uses: compairifuel/.github/actions/validate-commits@main
@@ -75,8 +75,6 @@ jobs:
 
             PR_TITLE="${PR_TITLE//$'\r'/}"
             PR_BODY="${PR_BODY//$'\r'/}"
-
-            PR_BODY=$(jq -Rn --arg str "$PR_BODY" '$str' | sed 's/^"\(.*\)"$/\1/')
 
             PR_COMMIT="$PR_TITLE"
 

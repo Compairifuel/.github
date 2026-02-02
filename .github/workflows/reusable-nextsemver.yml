@@ -94,7 +94,7 @@ jobs:
 
           COMMITS=$(git log "$TAG"..HEAD --pretty=format:%B%n%n==END== --cherry -- "$PACKAGE_PATHSPEC" | sed '/^\s*$/d')
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
+          printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
 
       - id: is_trunk

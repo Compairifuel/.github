@@ -15,7 +15,10 @@ runs:
   steps:
     - shell: bash
       run: |
-        COMMITS="${{ inputs.commits }}"
+        COMMITS="$(cat <<'EOF'
+        ${{ inputs.commits }}
+        EOF
+        )"
         ALLOWED_TYPES="${{ inputs.allowed_types }}"
 
         chmod +x "$GITHUB_ACTION_PATH/validate-commits.sh"

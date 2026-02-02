@@ -39,7 +39,10 @@ runs:
     - shell: bash
       id: compute
       run: |
-        COMMITS="${{ inputs.commits }}"
+        COMMITS="$(cat <<'EOF'
+        ${{ inputs.commits }}
+        EOF
+        )"
         PACKAGE_PATH="${{ inputs.package-path }}"
         LATEST_TAG="${{ inputs.latest-tag }}"
         VERSION_PREFIX="v"
@@ -50,8 +53,11 @@ runs:
 
         chmod +x "$GITHUB_ACTION_PATH/compute-semver.sh"
 
+        COMMITS_FILE="$(mktemp)"
+        printf '%s\n' "$COMMITS" > "$COMMITS_FILE"
+
         "$GITHUB_ACTION_PATH/compute-semver.sh" \
-          "$COMMITS" \
+          "$COMMITS_FILE" \
           "$PACKAGE_PATH" \
           "$LATEST_TAG" \
           "$VERSION_PREFIX" \
@@ -59,3 +65,5 @@ runs:
           "$ISTRUNK" \
           "$MAJOR_TYPES" \
           "$MINOR_TYPES"
+        
+        rm -f "$COMMITS_FILE"
