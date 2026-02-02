@@ -58,15 +58,15 @@ jobs:
       - id: get_path
         run: |
           if [ "${{ inputs.monorepo }}" = "true" ]; then
-            echo "PATH=${{ inputs.monorepo-package-path }}" >> $GITHUB_OUTPUT
+            echo "PACKAGE_PATH=${{ inputs.monorepo-package-path }}" >> $GITHUB_OUTPUT
           else
-            echo "PATH=" >> $GITHUB_OUTPUT
+            echo "PACKAGE_PATH=" >> $GITHUB_OUTPUT
           fi
 
       - name: Get Latest Tag
         id: get_tag
         run: |
-          PREFIX="${{ steps.get_path.outputs.PATH }}"
+          PREFIX="${{ steps.get_path.outputs.PACKAGE_PATH }}"
           TAG_PATTERN="${PREFIX:+$PREFIX/}v[0-9a-zA-Z-]*"
 
           LATEST_TAG=$(git tag --list "$TAG_PATTERN" --sort=-v:refname | head -n 1)
@@ -79,10 +79,10 @@ jobs:
       - name: Get Commits
         id: get_commits
         run: |
-          PATH="${{ steps.get_path.outputs.PATH }}"
+          PACKAGE_PATH="${{ steps.get_path.outputs.PACKAGE_PATH }}"
           TAG="${{ steps.get_tag.outputs.LATEST_TAG }}"
 
-          if [ "$TAG" = "${PATH:+$PATH/}v0.0.0" ]; then
+          if [ "$TAG" = "${PACKAGE_PATH:+$PACKAGE_PATH/}v0.0.0" ]; then
             TAG="origin/${{ inputs.trunk-ref }}"
           fi
 
@@ -90,7 +90,7 @@ jobs:
           git checkout -b temp-rebased "$GITHUB_SHA"
           git rebase origin/${{ inputs.trunk-ref }} --autostash || exit 1
 
-          COMMITS=$(git log "$TAG"..HEAD --pretty=format:%B%n%n==END== --cherry -- "$PATH" | sed '/^\s*$/d')
+          COMMITS=$(git log "$TAG"..HEAD --pretty=format:%B%n%n==END== --cherry -- "$PACKAGE_PATH" | sed '/^\s*$/d')
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -109,7 +109,7 @@ jobs:
         uses: compairifuel/.github/actions/compute-semver@main
         with:
           commits: ${{ steps.get_commits.outputs.COMMITS }}
-          package-path: ${{ steps.get_path.outputs.PATH }}
+          package-path: ${{ steps.get_path.outputs.PACKAGE_PATH }}
           latest-tag: ${{ steps.get_tag.outputs.LATEST_TAG }}
           is-trunk: ${{ steps.is_trunk.outputs.ISTRUNK }}
           major-types: ${{ inputs.major-types }}
