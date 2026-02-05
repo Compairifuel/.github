@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       semver: ${{ steps.computesemver.outputs.SEMVER }}
-      semver-tag: ${{ steps.computesemver.outputs.TAG_NAME }}
+      semver-tag: ${{ format('{0}{1}', steps.get_path.outputs.PACKAGE_PATH && format('{0}/', steps.get_path.outputs.PACKAGE_PATH) || '', steps.computesemver.outputs.SEMVER) }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -130,6 +130,6 @@ jobs:
         if: ${{ steps.get_commits.outputs.COMMITS != '' && steps.computesemver.outputs.SEMVER != '' }}
         uses: actions/upload-artifact@v6
         with:
-          name: "changelog-${{ steps.computesemver.outputs.TAG_NAME }}"
+          name: "changelog-${{ steps.get_path.outputs.PACKAGE_PATH && format('{0}/', steps.get_path.outputs.PACKAGE_PATH) || '' }}${{ steps.computesemver.outputs.SEMVER }}"
           path: |
             CHANGELOG.md
