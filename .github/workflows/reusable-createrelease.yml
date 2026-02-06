@@ -42,6 +42,11 @@ jobs:
       - name: Check if tag exists
         id: tag_check
         run: |
+          if [ -z "${{ inputs.tag-name }}" ] || [ "${{ inputs.tag-name }}" == "" ]; then
+            echo "Tag name is required"
+            echo "EXISTS=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
           if git rev-parse "refs/tags/${{ inputs.tag-name }}" >/dev/null 2>&1; then
             echo "EXISTS=true" >> $GITHUB_OUTPUT
           else
