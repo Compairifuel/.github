@@ -14,10 +14,13 @@ run_test() {
   local trunk="$5"
   local expected="$6"
 
+  COMMITS_FILE="$(mktemp)"
+  printf '%s\n' "$commits" > "$COMMITS_FILE"
+
   export GITHUB_OUTPUT="$(mktemp)"
 
   "$SCRIPT" \
-    "$commits" \
+    "$COMMITS_FILE" \
     "$package_path" \
     "$latest" \
     "v" \
@@ -65,6 +68,13 @@ run_test "feat minor" \
   "" \
   true \
   "v1.3.0"
+
+run_test "not conventional commit as patch" \
+  $'i did a thing\n==END==\n' \
+  "v1.2.3" \
+  "" \
+  true \
+  "v1.2.4"
 
 run_test "scoped feat" \
   $'feat(api): add\n==END==\n' \
