@@ -76,11 +76,20 @@ jobs:
 
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
 
+      - id: is_trunk
+        run: |
+          if [ "$GITHUB_REF_NAME" == "${{ inputs.trunk-ref }}" ]; then
+            echo "ISTRUNK=true" >> $GITHUB_OUTPUT
+          else
+            echo "ISTRUNK=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Get Commits
         id: get_commits
         run: |
           PACKAGE_PATH="${{ steps.get_path.outputs.PACKAGE_PATH }}"
           TAG="${{ steps.get_tag.outputs.LATEST_TAG }}"
+          ISTRUNK="${{ steps.is_trunk.outputs.ISTRUNK }}"
 
           if [ "$TAG" = "${PACKAGE_PATH:+$PACKAGE_PATH/}v0.0.0" ]; then
             TAG="origin/${{ inputs.trunk-ref }}"
@@ -92,18 +101,15 @@ jobs:
 
           PACKAGE_PATHSPEC="${PACKAGE_PATH:-.}"
 
-          COMMITS=$(git log "$TAG"..HEAD --pretty=format:%B%n%n==END== --cherry -- "$PACKAGE_PATHSPEC" | sed '/^\s*$/d')
+          REVISION_RANGE="$TAG..HEAD"
+          if [ "$ISTRUNK" = "true" && "$TAG" != "origin/${{ inputs.trunk-ref }}" ]; then
+            REVISION_RANGE="HEAD"
+          fi
+
+          COMMITS=$(git log "$REVISION_RANGE" --pretty=format:%B%n%n==END== --cherry -- "$PACKAGE_PATHSPEC" | sed '/^\s*$/d')
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
           printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
-
-      - id: is_trunk
-        run: |
-          if [ "$GITHUB_REF_NAME" == "${{ inputs.trunk-ref }}" ]; then
-            echo "ISTRUNK=true" >> $GITHUB_OUTPUT
-          else
-            echo "ISTRUNK=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Compute version
         if: steps.get_commits.outputs.COMMITS != ''
