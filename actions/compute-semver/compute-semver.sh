@@ -61,11 +61,13 @@ for commit in "${COMMIT_ARRAY[@]}"; do
 
   COMMIT_BUMP="patch"
   TYPE_LABEL="PATCH"
+  MATCHED_TYPE="false"
 
   for t in "${MAJOR_TYPES[@]}"; do
     if matches_type "$commit" "$t"; then
       COMMIT_BUMP="major"
       TYPE_LABEL="MAJOR"
+      MATCHED_TYPE="true"
       break
     fi
   done
@@ -75,15 +77,22 @@ for commit in "${COMMIT_ARRAY[@]}"; do
       if matches_type "$commit" "$t"; then
         COMMIT_BUMP="minor"
         TYPE_LABEL="MINOR"
+        MATCHED_TYPE="true"
         break
       fi
     done
+  fi
+
+  regex='^[a-zA-Z0-9]+(\([^)]*\))?:'
+  if [[ "$MATCHED_TYPE" == "false" && "$commit" =~ $regex ]]; then
+    MATCHED_TYPE="true"
   fi
 
   if (( $(bump_rank "$COMMIT_BUMP") > $(bump_rank "$OVERALL_BUMP") )); then
     OVERALL_BUMP="$COMMIT_BUMP"
   fi
 
+  [[ "$MATCHED_TYPE" == "false" ]] && continue
   CHANGELOG_ENTRIES+=("[$TYPE_LABEL] $commit")
 done
 
