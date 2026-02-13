@@ -54,6 +54,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Trunk branch
+        if: ${{ inputs.trunk-ref != '' }}
+        run: git fetch origin ${{ inputs.trunk-ref }} || exit 1
       - name: Validate PR commits and title
         id: pr_commits
         env:
@@ -78,7 +81,7 @@ jobs:
 
             PR_COMMIT="$PR_TITLE"
 
-            if [ -n "$PR_BODY" ]; then
+            if [ -n "$PR_BODY" && ${{ github.actor != 'dependabot[bot]' }}]; then
               PR_COMMIT="$PR_COMMIT"$'\n\n'"$PR_BODY"
             fi
 
