@@ -102,7 +102,7 @@ jobs:
           PACKAGE_PATHSPEC="${PACKAGE_PATH:-.}"
 
           REVISION_RANGE="$TAG..HEAD"
-          if [ "$ISTRUNK" = "true" && "$TAG" != "origin/${{ inputs.trunk-ref }}" ]; then
+          if [ "$ISTRUNK" = "true" ] && [ "$TAG" != "origin/${{ inputs.trunk-ref }}" ]; then
             REVISION_RANGE="HEAD"
           fi
 
