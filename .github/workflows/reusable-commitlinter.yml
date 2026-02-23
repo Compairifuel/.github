@@ -54,6 +54,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Validate Trunk branch
         if: ${{ inputs.trunk-ref != '' }}
         run: git fetch origin ${{ inputs.trunk-ref }} || exit 1
