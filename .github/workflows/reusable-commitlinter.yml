@@ -85,7 +85,7 @@ jobs:
 
             PR_COMMIT="$PR_TITLE"
 
-            if [ -n "$PR_BODY" && ${{ github.actor != 'dependabot[bot]' }}]; then
+            if [ -n "$PR_BODY" ] && [ ${{ github.actor != 'dependabot[bot]' }}]; then
               PR_COMMIT="$PR_COMMIT"$'\n\n'"$PR_BODY"
             fi
 
