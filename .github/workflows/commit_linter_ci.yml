@@ -1,0 +1,17 @@
+name: Conventional Commit Linter CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  commit_linter:
+    name: Commit Linter
+    uses: compairifuel/.github/.github/workflows/reusable-commitlinter.yml@main
+    with:
+      trunk-ref: "main"
+    permissions:
+      contents: read

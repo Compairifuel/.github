@@ -1,0 +1,41 @@
+name: Semver Versioning CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  computing_version:
+    name: Compute Semver Version
+    uses: compairifuel/.github/.github/workflows/reusable-nextsemver.yml@main
+    with:
+      trunk-ref: "main"
+    permissions:
+      contents: read
+
+  display_version:
+    name: Display Computed Version
+    needs: computing_version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display Semver Tag
+        shell: bash
+        run: |
+          echo "Computed SemVer Tag: ${{ needs.computing_version.outputs.semver-tag }}"
+
+  add_release:
+    name: Add Version Tag & Release
+    needs: computing_version
+    if: github.ref == 'refs/heads/main' && needs.computing_version.outputs.semver-tag != '' && needs.computing_version.outputs.semver != ''
+    uses: compairifuel/.github/.github/workflows/reusable-createrelease.yml@main
+    with:
+      tag-name: ${{ needs.computing_version.outputs.semver-tag }}
+    permissions:
+      contents: write
+    secrets: 
+      github-token: ${{ secrets.GITHUB_TOKEN }}
