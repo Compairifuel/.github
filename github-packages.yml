@@ -1,0 +1,12 @@
+reusable-createrelease:
+  - .github/workflows/reusable-createrelease.yml
+reusable-nextsemver:
+  - .github/workflows/reusable-nextsemver.yml
+reusable-codesecscan:
+  - .github/workflows/reusable-codesecscan.yml
+reusable-labelsync:
+  - .github/workflows/reusable-labelsync.yml
+reusable-containerregistrypusher:
+  - .github/workflows/reusable-containerregistrypusher.yml
+reusable-commitlinter:
+  - .github/workflows/reusable-commitlinter.yml

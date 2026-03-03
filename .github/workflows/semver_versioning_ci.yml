@@ -10,23 +10,60 @@ on:
   workflow_dispatch:
 
 jobs:
-  computing_version:
-    name: Compute Semver Version
-    uses: compairifuel/.github/.github/workflows/reusable-nextsemver.yml@main
-    with:
-      trunk-ref: "main"
-    permissions:
-      contents: read
-
-  display_version:
-    name: Display Computed Version
-    needs: computing_version
+  changes: 
     runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.path_filter.outputs.changes }}
     steps:
-      - name: Display Semver Tag
-        shell: bash
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Path Filter
+        id: path_filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: github-packages.yml
+
+  computing_version:
+    needs: changes
+    if: needs.changes.outputs.changes != '[]'
+    strategy:
+      matrix:
+        package-path: ${{ fromJSON(needs.changes.outputs.changes) }}
+    name: Compute Semver Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.compute_version.outputs.version }}
+      semver-tag: ${{ steps.compute_version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+              
+      - name: Install GitVersion
+        if: ${{ needs.changes.outputs.changes != '[]' }}
+        uses: gittools/actions/gitversion/setup@v4.3.3
+        with:
+          versionSpec: '6.0.0'
+
+      - name: Execute GitVersion
+        if: ${{ needs.changes.outputs.changes != '[]' }}
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4.3.3
+        with:
+            targetPath: ${{ matrix.package-path }}
+      
+      - name: Set outputs
+        if: ${{ steps.gitversion.outcome != 'skipped' }}
+        id: compute_version
         run: |
-          echo "Computed SemVer Tag: ${{ needs.computing_version.outputs.semver-tag }}"
+          echo "version=${{ steps.gitversion.outputs.semver }}" >> $GITHUB_OUTPUT
+          if [ -n "${{ matrix.package-path }}" ]; then
+            echo "tag=${{ matrix.package-path }}/V${{ steps.gitversion.outputs.semver }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=V${{ steps.gitversion.outputs.semver }}" >> $GITHUB_OUTPUT
+          fi
 
   add_release:
     name: Add Version Tag & Release
