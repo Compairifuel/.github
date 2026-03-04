@@ -45,7 +45,7 @@ jobs:
         if: ${{ needs.changes.outputs.changes != '[]' }}
         uses: gittools/actions/gitversion/setup@v4.3.3
         with:
-          versionSpec: '6.0.0'
+          versionSpec: '6.6.x'
 
       - name: Execute GitVersion
         if: ${{ needs.changes.outputs.changes != '[]' }}
