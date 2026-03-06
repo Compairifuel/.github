@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload Changelog
         if: ${{ steps.get_commits.outputs.COMMITS != '' && steps.computesemver.outputs.SEMVER != '' }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: "changelog-${{ steps.get_path.outputs.PACKAGE_PATH && format('{0}/', steps.get_path.outputs.PACKAGE_PATH) || '' }}${{ steps.computesemver.outputs.SEMVER }}"
           path: |
