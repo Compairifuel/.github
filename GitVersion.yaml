@@ -1,7 +1,5 @@
-mode: Mainline
 increment: Patch
-commit-message-incrementing: Enabled
-track-merge-target: false
+commit-message-incrementing: Enabled  
 
 tag-prefix: '[vV]'
 
@@ -13,8 +11,9 @@ no-bump-message: "\\+semver:\\s?(none|skip)"
 branches:
   main:
     regex: ^main$
-    is-mainline: true
     increment: Patch
-    tag: ''
-    track-merge-target: false
-    prevent-increment-of-merged-branch-version: true
+    label: ''
+
+  pull-request:
+    increment: Inherit
+    label: alpha
