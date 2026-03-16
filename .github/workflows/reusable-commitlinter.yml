@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Validate Trunk branch
@@ -34,17 +34,21 @@ jobs:
       - name: Get commits
         id: get_commits
         run: |
-          if [ "${{ inputs.trunk-ref }}" = "" ]; then
-            BASE_REF=$(git rev-parse HEAD)
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE_SHA="${{ github.event.before }}"
           else
-            BASE_REF="origin/${{ inputs.trunk-ref }}"
+            BASE_SHA="origin/${{ inputs.trunk-ref }}"
           fi
-          COMMITS=$(git log "$BASE_REF..$GITHUB_SHA" --pretty=format:%B%n%n==END== | sed '/^\s*$/d')
+
+          HEAD_SHA="${{ github.sha }}"
+
+          COMMITS=$(git log "$BASE_SHA..$HEAD_SHA" --pretty=format:%B%n%n==END==)
+
           echo "commits<<EOF" >> $GITHUB_OUTPUT
           printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
           
-      - uses: compairifuel/.github/actions/validate-commits@main
+      - uses: compairifuel/.github/actions/validate-commits@V1.1.0-2
         with:
           commits: ${{ steps.get_commits.outputs.commits }}
           allowed_types: "${{ inputs.allowed_types }}"
@@ -53,29 +57,25 @@ jobs:
     if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Validate Trunk branch
-        if: ${{ inputs.trunk-ref != '' }}
-        run: git fetch origin ${{ inputs.trunk-ref }} || exit 1
       - name: Validate PR commits and title
         id: pr_commits
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ inputs.trunk-ref }}" = "" ]; then
-            BASE_REF=$(git rev-parse HEAD)
-          else
-            BASE_REF="origin/${{ inputs.trunk-ref }}"
-          fi
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          COMMITS=$(git log "$BASE_REF..$GITHUB_SHA" --pretty=format:%B%n%n==END== | sed '/^\s*$/d')
+          COMMITS=$(git log "$BASE_SHA..$HEAD_SHA" --pretty=format:%B%n%n==END==)
 
           # If squash/merge, include PR title as a commit
-          if [ $(echo "$COMMITS" | wc -l) -eq 1 ]; then
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c "==END==")
+
+          if [ "$COMMIT_COUNT" -eq 1 ]; then
 
             PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
             PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
@@ -85,7 +85,7 @@ jobs:
 
             PR_COMMIT="$PR_TITLE"
 
-            if [ -n "$PR_BODY" ] && [ ${{ github.actor != 'dependabot[bot]' }}]; then
+            if [ -n "$PR_BODY" ] && [ "${{ github.actor }}" != "dependabot[bot]" ]; then
               PR_COMMIT="$PR_COMMIT"$'\n\n'"$PR_BODY"
             fi
 
@@ -96,7 +96,7 @@ jobs:
           printf '%s\n' "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - uses: compairifuel/.github/actions/validate-commits@main
+      - uses: compairifuel/.github/actions/validate-commits@V1.1.0-2
         with:
           commits: ${{ steps.pr_commits.outputs.commits }}
           allowed_types: "${{ inputs.allowed_types }}"
