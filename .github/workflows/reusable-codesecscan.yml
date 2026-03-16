@@ -27,10 +27,10 @@ jobs:
     name: Semgrep Static Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache pip
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: pip-semgrep-${{ runner.os }}-latest
@@ -160,7 +160,7 @@ jobs:
       - name: Upload Static Code Analysis Artifact
         id: upload-artifact
         if: always() && !cancelled() && steps.semgrep-setup.outcome == 'success' && steps.semgrep.conclusion == 'success'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-analysis
           path: |
